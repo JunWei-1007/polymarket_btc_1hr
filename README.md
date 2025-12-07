@@ -1,4 +1,4 @@
-# Polymarket NPC — BTC 1 小時市場 YES/NO → 1 分鐘 K 線視覺化工具
+# Polymarket BTC 1 小時市場
 
 專案核心目的：
 
