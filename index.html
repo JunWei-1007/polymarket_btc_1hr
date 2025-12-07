@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polymakert NPC</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/light.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+    
+    <style>
+        /* --- 變數定義 --- */
+        :root {
+            --bg-body: #F3F4F6;
+            --bg-card: #FFFFFF;
+            --primary: #3B82F6;
+            --primary-hover: #2563EB;
+            --text-main: #111827;
+            --text-sub: #6B7280;
+            --border: #E5E7EB;
+            --yes-color: #089981;
+            --no-color: #f23645;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --radius: 12px;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- 頂部控制面板 --- */
+        #control-panel {
+            background-color: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 16px;
+            box-shadow: var(--shadow-sm);
+            z-index: 20;
+            position: relative;
+        }
+
+        .brand-logo {
+            position: absolute;
+            left: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .brand-icon {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, var(--yes-color), var(--primary));
+            border-radius: 6px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .label-text {
+            font-size: 11px;
+            color: var(--text-sub);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* 輸入框美化 */
+        input.picker-input {
+            background-color: #F9FAFB;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            outline: none;
+            transition: all 0.2s ease;
+            width: 130px;
+            text-align: center;
+            font-family: 'Inter', sans-serif;
+        }
+
+        input.picker-input:focus {
+            background-color: #FFF;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Slug 預覽框 (代碼風格) */
+        input#slugPreview {
+            background: #EFF6FF;
+            border: 1px solid #BFDBFE;
+            color: #1E40AF;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            width: 380px;
+            cursor: copy;
+            transition: all 0.2s;
+        }
+        input#slugPreview:hover {
+            border-color: var(--primary);
+        }
+
+        .arrow-separator {
+            color: var(--border);
+            padding-bottom: 10px;
+            font-size: 18px;
+        }
+
+        /* 按鈕美化 */
+        button#loadBtn {
+            background: linear-gradient(180deg, var(--primary) 0%, var(--primary-hover) 100%);
+            color: white;
+            border: none;
+            padding: 0 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            height: 39px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            transition: transform 0.1s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        button#loadBtn:hover {
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+            transform: translateY(-1px);
+        }
+
+        button#loadBtn:active {
+            transform: translateY(1px);
+        }
+
+        button:disabled {
+            background: #D1D5DB;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* 狀態指示燈 */
+        #status-indicator {
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 12px;
+            padding: 4px 8px;
+            border-radius: 20px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        #status-indicator.visible { opacity: 1; }
+        .status-loading { color: #F59E0B; background: #FFFBEB; }
+        .status-success { color: var(--yes-color); background: #ECFDF5; }
+        .status-error   { color: var(--no-color); background: #FEF2F2; }
+
+        /* --- 圖表容器區 --- */
+        #charts-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-body); /* 讓圖表區有邊距感 */
+            padding: 12px;
+            gap: 12px;
+        }
+
+        .chart-card {
+            flex: 1;
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden; /* 確保圓角 */
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chart-render-area {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- 浮水印 Badge --- */
+        .watermark {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(4px);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: white;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+        .badge-yes { background-color: var(--yes-color); }
+        .badge-no { background-color: var(--no-color); }
+
+        .token-id {
+            font-weight: 500;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-sub);
+            font-size: 12px;
+        }
+
+        /* 調整 Flatpickr 樣式 */
+        .flatpickr-calendar {
+            box-shadow: var(--shadow-md) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 12px !important;
+        }
+    </style>
+</head>
+<body>
+
+<div id="control-panel">
+    <div class="brand-logo">
+        <div class="brand-icon"></div>
+        Polymarket NPC
+    </div>
+
+    <div class="control-group">
+        <span class="label-text">Target Date</span>
+        <input type="text" id="datePicker" class="picker-input" placeholder="Select Date">
+    </div>
+    
+    <div class="control-group">
+        <span class="label-text">Close Hour (ET)</span>
+        <input type="text" id="timePicker" class="picker-input" placeholder="Select Time">
+    </div>
+    
+    <div class="arrow-separator">➔</div>
+    
+    <div class="control-group">
+        <span class="label-text">Generated Slug</span>
+        <input type="text" id="slugPreview" readonly placeholder="Waiting for input...">
+    </div>
+    
+    <div class="control-group" style="flex-direction: row; align-items: flex-end; padding-left: 10px;">
+        <button id="loadBtn" onclick="loadMarketData()">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Render Chart
+        </button>
+        <span id="status-indicator">Ready</span>
+    </div>
+</div>
+
+<div id="charts-container">
+    <div class="chart-card" id="wrapper-yes">
+        <div class="watermark">
+            <span class="badge badge-yes">YES</span>
+            <span id="id-yes" class="token-id">Waiting for data...</span>
+        </div>
+        <div id="chart-yes-container" class="chart-render-area"></div>
+    </div>
+
+    <div class="chart-card" id="wrapper-no">
+        <div class="watermark">
+            <span class="badge badge-no">NO</span>
+            <span id="id-no" class="token-id">Waiting for data...</span>
+        </div>
+        <div id="chart-no-container" class="chart-render-area"></div>
+    </div>
+</div>
+
+<script>
+    // --- 1. 日曆與 Slug (邏輯不變) ---
+    const slugInput = document.getElementById('slugPreview');
+
+    flatpickr("#datePicker", { 
+        dateFormat: "Y-m-d", 
+        defaultDate: "2025-07-01", 
+        onChange: generateSlug,
+        disableMobile: "true"
+    });
+    
+    flatpickr("#timePicker", { 
+        enableTime: true, 
+        noCalendar: true, 
+        dateFormat: "H:00", 
+        time_24hr: true, 
+        defaultDate: "00:00", 
+        minuteIncrement: 60, 
+        onChange: generateSlug,
+        disableMobile: "true"
+    });
+
+    function generateSlug() {
+        const dateStr = document.getElementById('datePicker').value;
+        const timeStr = document.getElementById('timePicker').value;
+        if(!dateStr || !timeStr) return;
+        const dateObj = new Date(dateStr);
+        const month = dateObj.toLocaleString('en-US', { month: 'long' }).toLowerCase();
+        const day = dateObj.getDate();
+        let [hours] = timeStr.split(':').map(Number);
+        let ampm = hours >= 12 ? 'pm' : 'am';
+        let displayHour = hours % 12;
+        if (displayHour === 0) displayHour = 12;
+        slugInput.value = `bitcoin-up-or-down-${month}-${day}-${displayHour}${ampm}-et`;
+    }
+
+    // --- 2. Chart 設定 ---
+    let chartYes, seriesYes, volYes;
+    let chartNo, seriesNo, volNo;
+
+    // 定義顏色常數，方便管理
+    const COLORS = {
+        bg: '#FFFFFF',
+        text: '#333333',
+        grid: '#F3F4F6',
+        up: '#10B981',    // 鮮豔的綠
+        down: '#EF4444',  // 鮮豔的紅
+        border: '#E5E7EB'
+    };
+
+    const baseOptions = {
+        layout: { 
+            background: { type: 'solid', color: COLORS.bg }, 
+            textColor: COLORS.text, 
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 12
+        },
+        grid: { 
+            vertLines: { color: COLORS.grid }, 
+            horzLines: { color: COLORS.grid } 
+        },
+        rightPriceScale: { 
+            borderColor: COLORS.border, 
+            scaleMargins: { top: 0.1, bottom: 0.2 }, 
+            alignLabels: true,
+            minimumWidth: 60
+        },
+        timeScale: {
+            borderColor: COLORS.border,
+            timeVisible: true,
+            secondsVisible: false
+        },
+        crosshair: {
+            vertLine: { labelBackgroundColor: '#4F46E5' },
+            horzLine: { labelBackgroundColor: '#4F46E5' }
+        }
+    };
+
+    function initCharts() {
+        // YES: 隱藏時間軸
+        const optionsYes = { 
+            ...baseOptions, 
+            timeScale: { ...baseOptions.timeScale, visible: false } 
+        };
+        // NO: 顯示時間軸
+        const optionsNo = { 
+            ...baseOptions, 
+            timeScale: { ...baseOptions.timeScale, visible: true } 
+        };
+
+        const containerYes = document.getElementById('chart-yes-container');
+        const containerNo = document.getElementById('chart-no-container');
+
+        chartYes = LightweightCharts.createChart(containerYes, optionsYes);
+        seriesYes = chartYes.addCandlestickSeries({ 
+            upColor: COLORS.up, downColor: COLORS.down, 
+            borderVisible: false, 
+            wickUpColor: COLORS.up, wickDownColor: COLORS.down 
+        });
+        volYes = chartYes.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: '' });
+        volYes.priceScale().applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+
+        chartNo = LightweightCharts.createChart(containerNo, optionsNo);
+        seriesNo = chartNo.addCandlestickSeries({ 
+            upColor: COLORS.up, downColor: COLORS.down, 
+            borderVisible: false, 
+            wickUpColor: COLORS.up, wickDownColor: COLORS.down 
+        });
+        volNo = chartNo.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: '' });
+        volNo.priceScale().applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+
+        // Resize Observer
+        const resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                const { width, height } = entry.contentRect;
+                if (entry.target.parentElement.id === 'wrapper-yes') chartYes.applyOptions({ width, height });
+                if (entry.target.parentElement.id === 'wrapper-no') chartNo.applyOptions({ width, height });
+            }
+        });
+
+        resizeObserver.observe(containerYes);
+        resizeObserver.observe(containerNo);
+        
+        // 同步機制
+        const sync = (s, t, sSeries) => {
+            s.timeScale().subscribeVisibleLogicalRangeChange(r => { if(r) t.timeScale().setVisibleLogicalRange(r); });
+            s.subscribeCrosshairMove(p => { p.time ? t.setCrosshairPosition(0, p.time, sSeries) : t.clearCrosshairPosition(); });
+        };
+        sync(chartYes, chartNo, seriesNo);
+        sync(chartNo, chartYes, seriesYes);
+    }
+
+    // --- 3. 資料對齊與填補邏輯 (保持原樣) ---
+    function alignData(dataA, dataB) {
+        const allTimes = new Set([...dataA.map(d => d.time), ...dataB.map(d => d.time)]);
+        const sortedTimes = Array.from(allTimes).sort((a, b) => a - b);
+        const fillGaps = (originalData, timeList) => {
+            const dataMap = new Map(originalData.map(item => [item.time, item]));
+            let lastClose = 0;
+            return timeList.map(time => {
+                const item = dataMap.get(time);
+                if (item) {
+                    lastClose = Number(item.close);
+                    return {
+                        time: item.time,
+                        open: Number(item.open), high: Number(item.high), low: Number(item.low), close: Number(item.close),
+                        volume: Number(item.volume),
+                        color: Number(item.close) >= Number(item.open) ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'
+                    };
+                } else {
+                    return {
+                        time: time,
+                        open: lastClose, high: lastClose, low: lastClose, close: lastClose,
+                        volume: 0, 
+                        color: 'rgba(200, 200, 200, 0.2)'
+                    };
+                }
+            });
+        };
+        return { alignedA: fillGaps(dataA, sortedTimes), alignedB: fillGaps(dataB, sortedTimes) };
+    }
+
+    // --- 4. 載入資料 ---
+    async function loadMarketData() {
+        const slug = slugInput.value;
+        const btn = document.getElementById('loadBtn');
+        const status = document.getElementById('status-indicator');
+
+        if(!slug) return;
+        
+        // UI Loading State
+        btn.disabled = true; 
+        btn.innerHTML = `<svg class="animate-spin" width="16" height="16" fill="none" viewBox="0 0 24 24" style="animation: spin 1s linear infinite; margin-right:6px;"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Loading...`;
+        status.textContent = "Fetching Data...";
+        status.className = "status-loading visible";
+
+        try {
+            const tokenRes = await fetch(`https://my-backend-api-31391149338.asia-east1.run.app/tokens?slug=${slug}`);
+            if(!tokenRes.ok) throw new Error("API Error");
+            const tokenData = await tokenRes.json();
+            if(!tokenData.length) throw new Error("Slug not found");
+
+            const { yes_token, no_token } = tokenData[0];
+            document.getElementById('id-yes').textContent = `Token: ${yes_token.substring(0,8)}...`;
+            document.getElementById('id-no').textContent = `Token: ${no_token.substring(0,8)}...`;
+
+            const [rawYes, rawNo] = await Promise.all([
+                fetchRawKlines(yes_token),
+                fetchRawKlines(no_token)
+            ]);
+
+            const { alignedA: finalYes, alignedB: finalNo } = alignData(rawYes, rawNo);
+
+            seriesYes.setData(finalYes);
+            volYes.setData(finalYes.map(d => ({ time: d.time, value: d.volume, color: d.color })));
+
+            seriesNo.setData(finalNo);
+            volNo.setData(finalNo.map(d => ({ time: d.time, value: d.volume, color: d.color })));
+
+            chartYes.timeScale().fitContent();
+            
+            status.textContent = "Success";
+            status.className = "status-success visible";
+            
+            // Auto hide success msg
+            setTimeout(() => { status.classList.remove('visible'); }, 3000);
+
+        } catch(e) {
+            console.error(e);
+            status.textContent = "Data Not Found";
+            status.className = "status-error visible";
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg> Render Chart`;
+        }
+    }
+
+    async function fetchRawKlines(id) {
+        try {
+            const res = await fetch(`https://my-backend-api-31391149338.asia-east1.run.app/klines?asset_id=${id}`);
+            let data = await res.json();
+            return data || [];
+        } catch(e) {
+            return [];
+        }
+    }
+
+    // Add CSS Keyframe for spinner
+    const style = document.createElement('style');
+    style.innerHTML = `
+      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    `;
+    document.head.appendChild(style);
+
+    window.addEventListener('DOMContentLoaded', () => {
+        initCharts();
+        generateSlug();
+        setTimeout(loadMarketData, 500);
+    });
+</script>
+
+</body>
+</html>
